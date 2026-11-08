@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Miembros y Mayordomía - Iglesia Fe y Esperanza San Francisco</title>
+    <!-- Configuración PWA e Iconos -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#123b78">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eaf1ff;
+            background-image:
+                radial-gradient(ellipse at 5% 12%, rgba(249, 115, 22, .24), transparent 38%),
+                radial-gradient(ellipse at 92% 26%, rgba(37, 99, 235, .24), transparent 40%),
+                linear-gradient(125deg, #e6efff 0%, #f5f8ff 48%, #fff0df 100%);
+            background-attachment: fixed;
+        }
+        #loginOverlay {
+            background-image: linear-gradient(120deg, rgba(18, 59, 120, .96), rgba(37, 99, 235, .88) 58%, rgba(249, 115, 22, .9));
+        }
+        #titheReport { scroll-margin-top: 6rem; }
+        .site-header { background: linear-gradient(110deg, #123b78 0%, #1d4ed8 58%, #f97316 100%); }
+        .report-banner { background: linear-gradient(110deg, #123b78 0%, #2563eb 62%, #f97316 100%); }
+        .report-table th, .report-table td { border: 1px solid #dbe3ef; }
+        .report-table th { background: #eff6ff; }
+        .report-member-table th, .report-member-table td { border: 1px solid #cbd5e1; }
+        .report-member-table th { background: #eaf1fb; }
+        @page { size: landscape; margin: 12mm; }
+        @media print {
+            body { background: #fff !important; color: #0f172a !important; }
+            body * { visibility: hidden !important; }
+            #titheReport, #titheReport * { visibility: visible !important; }
+            #titheReport {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                border: 0;
+                box-shadow: none;
+                overflow: visible !important;
+                background: #fff !important;
+            }
+            #titheReport .report-controls,
+            #titheReport .screen-only { display: none !important; }
+            #titheReport .report-banner {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            #titheReport .overflow-x-auto {
+                overflow: visible !important;
+                border: 0 !important;
+            }
+            #titheReport .report-table,
+            #titheReport .report-member-table {
+                width: 100% !important;
+                min-width: 0 !important;
+                border-collapse: collapse;
+            }
+            #titheReport .report-table th,
+            #titheReport .report-table td,
+            #titheReport .report-member-table th,
+            #titheReport .report-member-table td {
+                padding: 3px 2px !important;
+                font-size: 6pt !important;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+            #titheReport .report-member-table { table-layout: fixed; }
+            #titheReport .report-member-table th:nth-child(1),
+            #titheReport .report-member-table td:nth-child(1) { width: 3%; }
+            #titheReport .report-member-table th:nth-child(2),
+            #titheReport .report-member-table td:nth-child(2) { width: 15%; }
+            #titheReport .report-member-table th:nth-child(3),
+            #titheReport .report-member-table td:nth-child(3) { width: 8%; }
+            #titheReport .report-member-table th:nth-child(n+4):nth-child(-n+15),
+            #titheReport .report-member-table td:nth-child(n+4):nth-child(-n+15) {
+                width: 4.7%;
+                font-size: 5.5pt !important;
+            }
+            #titheReport .report-member-table th:nth-child(16),
+            #titheReport .report-member-table td:nth-child(16) { width: 10%; }
+            #titheReport .report-table th,
+            #titheReport .report-member-table th {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            #titheReport thead { display: table-header-group; }
+            #titheReport .report-summary-card { padding: 8px !important; }
+            #titheReport .report-signatures { break-inside: avoid; }
+            #titheReport tr { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Login -->
+    <div id="loginOverlay" class="fixed inset-0 z-[100] bg-slate-50 flex items-center justify-center p-4">
+        <form id="loginForm" class="bg-white w-full max-w-sm p-6 rounded-2xl shadow border border-slate-200 flex flex-col gap-4">
+            <div class="flex flex-col items-center gap-2">
+                <img src="logo.png" alt="Logo" class="h-20 object-contain">
+                <h2 class="text-lg font-bold text-slate-800 text-center">Gestión de Miembros</h2>
+                <p class="text-xs text-slate-500 text-center">Inicia sesión para continuar</p>
+            </div>
+            <input id="loginEmail" type="email" required placeholder="Correo" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input id="loginPass" type="password" required placeholder="Contraseña" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <p id="loginError" class="text-xs text-red-600 hidden"></p>
+            <button type="submit" class="bg-gradient-to-r from-blue-700 to-orange-500 hover:from-blue-800 hover:to-orange-600 text-white font-semibold py-2.5 rounded-xl text-sm">Entrar</button>
+        </form>
+    </div>
+
+
+    <!-- Header / Navbar -->
+    <header class="site-header text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <img src="logo.png" alt="Logo de la Iglesia Fe y Esperanza San Francisco" class="h-12 w-12 object-contain rounded-xl bg-white p-1.5">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Iglesia Fe y Esperanza San Francisco</h1>
+                    <p class="text-xs text-indigo-200">Gestión de Membresía y Mayordomía</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-4 py-2 rounded-xl shadow transition duration-200 flex items-center gap-2 text-sm w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-user-plus"></i> Nuevo Miembro
+                </button>
+                <button onclick="openMonthModal()" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-xl shadow text-sm flex items-center gap-2"><i class="fa-solid fa-calendar-check"></i> <span class="hidden sm:inline">Diezmos del mes</span></button>
+                <span id="syncStatus" class="text-xs text-indigo-200 whitespace-nowrap hidden sm:inline">☁ ...</span>
+                <button onclick="window.cloud.logout()" title="Cerrar sesión" class="bg-indigo-800 hover:bg-indigo-900 text-white px-3 py-2 rounded-xl text-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+        
+        <!-- Dashboard Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Miembros</p>
+                    <h3 id="statTotal" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl">
+                    <i class="fa-solid fa-users text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Miembros Plenos</p>
+                    <h3 id="statPlenos" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">
+                    <i class="fa-solid fa-user-check text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">En Proceso</p>
+                    <h3 id="statProceso" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="bg-amber-50 text-amber-600 p-3 rounded-xl">
+                    <i class="fa-solid fa-hourglass-half text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Obreros Locales</p>
+                    <h3 id="statObreros" class="text-2xl font-bold text-blue-600 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-50 text-blue-600 p-3 rounded-xl">
+                    <i class="fa-solid fa-hands-praying text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte anual de diezmos -->
+        <section id="titheReport" class="bg-white/95 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="report-banner text-white px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[.18em] text-white/80">Mayordomía · Rendición de cuentas</p>
+                    <h2 class="text-xl sm:text-2xl font-bold mt-1">Resumen anual de diezmos</h2>
+                    <p class="text-sm text-white/85 mt-1">Totales por mes y detalle de aportes de todos los miembros.</p>
+                </div>
+                <div class="report-controls flex flex-wrap items-center gap-2">
+                    <label for="reportYear" class="text-sm font-semibold">Año</label>
+                    <input id="reportYear" type="number" min="2000" max="2100" onchange="renderTitheReport()" class="w-24 rounded-xl border border-white/50 bg-white/95 px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-300">
+                    <button type="button" onclick="printTitheReport()" class="rounded-xl bg-white px-4 py-2 text-sm font-bold text-blue-800 shadow hover:bg-orange-50 transition">
+                        <i class="fa-solid fa-file-pdf mr-1"></i> Imprimir / Guardar PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-6 space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="report-summary-card rounded-xl border border-blue-100 bg-blue-50/80 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-blue-800">Total recibido en el año</p>
+                        <p id="reportYearTotal" class="mt-1 text-2xl font-bold text-blue-950">S/ 0.00</p>
+                    </div>
+                    <div class="report-summary-card rounded-xl border border-orange-100 bg-orange-50/80 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-orange-800">Miembros que aportaron</p>
+                        <p id="reportGiverCount" class="mt-1 text-2xl font-bold text-orange-950">0</p>
+                    </div>
+                    <div class="report-summary-card rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Promedio mensual</p>
+                        <p id="reportMonthlyAverage" class="mt-1 text-2xl font-bold text-slate-900">S/ 0.00</p>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="font-bold text-slate-800"><i class="fa-solid fa-chart-column mr-2 text-orange-500"></i>Totales por mes</h3>
+                        <p class="text-xs text-slate-500">Año <span id="reportYearLabel"></span></p>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="report-table w-full min-w-[420px] text-sm">
+                            <thead><tr class="text-left text-xs uppercase tracking-wide text-slate-600">
+                                <th class="px-4 py-2.5">Mes</th>
+                                <th class="px-4 py-2.5 text-center">Miembros que aportaron</th>
+                                <th class="px-4 py-2.5 text-right">Total recibido</th>
+                            </tr></thead>
+                            <tbody id="reportMonthRows" class="divide-y divide-slate-100"></tbody>
+                            <tfoot><tr class="bg-blue-50 font-bold text-blue-950">
+                                <td class="px-4 py-2.5">Aportes registrados</td>
+                                <td id="reportYearGiverMonths" class="px-4 py-2.5 text-center">0</td>
+                                <td id="reportMonthGrandTotal" class="px-4 py-2.5 text-right">S/ 0.00</td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
+                        <div>
+                            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-people-group mr-2 text-blue-600"></i>Detalle de aportes por miembro</h3>
+                            <p class="text-xs text-slate-500 mt-1">Incluye la lista completa; los meses sin aporte aparecen con un guion.</p>
+                        </div>
+                        <p id="reportMemberCount" class="text-xs font-semibold text-slate-500"></p>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="report-member-table w-full min-w-[1120px] text-xs">
+                            <thead><tr class="text-slate-700">
+                                <th class="px-2 py-2 text-left">N.º</th>
+                                <th class="px-2 py-2 text-left">Miembro</th>
+                                <th class="px-2 py-2">DNI</th>
+                                <th class="px-2 py-2">Ene</th><th class="px-2 py-2">Feb</th>
+                                <th class="px-2 py-2">Mar</th><th class="px-2 py-2">Abr</th>
+                                <th class="px-2 py-2">May</th><th class="px-2 py-2">Jun</th>
+                                <th class="px-2 py-2">Jul</th><th class="px-2 py-2">Ago</th>
+                                <th class="px-2 py-2">Sep</th><th class="px-2 py-2">Oct</th>
+                                <th class="px-2 py-2">Nov</th><th class="px-2 py-2">Dic</th>
+                                <th class="px-2 py-2">Total anual</th>
+                            </tr></thead>
+                            <tbody id="reportMemberRows" class="divide-y divide-slate-100"></tbody>
+                            <tfoot><tr class="bg-orange-50 font-bold text-slate-900">
+                                <td colspan="3" class="px-2 py-2 text-left">Total por mes</td>
+                                <td id="reportFooterMonth0" class="px-2 py-2"></td><td id="reportFooterMonth1" class="px-2 py-2"></td>
+                                <td id="reportFooterMonth2" class="px-2 py-2"></td><td id="reportFooterMonth3" class="px-2 py-2"></td>
+                                <td id="reportFooterMonth4" class="px-2 py-2"></td><td id="reportFooterMonth5" class="px-2 py-2"></td>
+                                <td id="reportFooterMonth6" class="px-2 py-2"></td><td id="reportFooterMonth7" class="px-2 py-2"></td>
+                                <td id="reportFooterMonth8" class="px-2 py-2"></td><td id="reportFooterMonth9" class="px-2 py-2"></td>
+                                <td id="reportFooterMonth10" class="px-2 py-2"></td><td id="reportFooterMonth11" class="px-2 py-2"></td>
+                                <td id="reportFooterYearTotal" class="px-2 py-2"></td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="report-signatures grid grid-cols-1 sm:grid-cols-2 gap-10 pt-5 text-center text-xs text-slate-600">
+                    <div class="border-t border-slate-400 pt-2">Tesorero(a) · Firma y fecha</div>
+                    <div class="border-t border-slate-400 pt-2">Pastor(a) / Revisión · Firma y fecha</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search and Filter Bar -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="relative w-full md:w-96">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-search"></i>
+                </span>
+                <input type="text" id="searchInput" oninput="filterMembers()" placeholder="Buscar por DNI, Nombre o Apellido..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                <select id="filterType" onchange="filterMembers()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos los tipos de miembro</option>
+                    <option value="EN PROCESO">En Proceso</option>
+                    <option value="PLENO">Pleno</option>
+                    <option value="OBRERO LOCAL">Obrero Local</option>
+                    <option value="FALTA_MES">Falta pagar este mes</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Members Table / List Container -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider border-b border-slate-200">
+                            <th class="py-3.5 px-4 font-semibold">Miembro</th>
+                            <th class="py-3.5 px-4 font-semibold">DNI / Celular</th>
+                            <th class="py-3.5 px-4 font-semibold">Tipo</th>
+                            <th class="py-3.5 px-4 font-semibold">Cargos / Ministerios</th>
+                            <th class="py-3.5 px-4 font-semibold text-center">Mayordomía <span class="text-xs font-normal normal-case" id="thYearLabel"></span></th>
+                            <th class="py-3.5 px-4 font-semibold text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden py-16 text-center">
+                <div class="text-slate-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
+                <p class="text-slate-500 font-medium">No se encontraron registros de miembros.</p>
+                <p class="text-slate-400 text-xs mt-1">Haz clic en "Nuevo Miembro" para empezar a registrar.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-center text-xs text-slate-500">
+        <p>Sistema de Gestión Eclesiástica - Optimizado para Dispositivos Móviles y Escritorio</p>
+    </footer>
+
+    <!-- Modal Formulario Miembro (Agregar / Editar) -->
+    <div id="memberModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 overflow-y-auto flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
+            <!-- Modal Header -->
+            <div class="bg-indigo-700 text-white px-6 py-4 flex justify-between items-center">
+                <h3 id="modalTitle" class="text-lg font-bold">Registrar Nuevo Miembro</h3>
+                <button onclick="closeModal()" class="text-indigo-200 hover:text-white p-1 rounded-lg text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-grow space-y-6">
+                <form id="memberForm" onsubmit="saveMember(event)">
+                    <input type="hidden" id="memberId">
+                    
+                    <!-- Datos Personales -->
+                    <div>
+                        <h4 class="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-user-pen"></i> Datos Personales
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Nombre y Apellido *</label>
+                                <input type="text" id="nombre" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">DNI *</label>
+                                <input type="text" id="dni" required maxlength="15" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Fecha de Nacimiento</label>
+                                <input type="date" id="fechaNacimiento" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Celular</label>
+                                <input type="text" id="celular" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Estado Civil</label>
+                                <select id="estadoCivil" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="Soltero(a)">Soltero(a)</option>
+                                    <option value="Casado(a)">Casado(a)</option>
+                                    <option value="Viudo(a)">Viudo(a)</option>
+                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Tipo de Miembro *</label>
+                                <select id="tipoMiembro" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="EN PROCESO">En Proceso</option>
+                                    <option value="PLENO">Pleno</option>
+                                    <option value="OBRERO LOCAL">Obrero Local</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Fecha de Conversión</label>
+                                <input type="date" id="fechaConversion" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Fecha de Bautismo en Agua</label>
+                                <input type="date" id="fechaBautismo" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-200">
+
+                    <!-- Roles y Ministerios -->
+                    <div>
+                        <h4 class="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-sitemap"></i> Cargos, Juntas y Ministerios
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Junta de Diáconos -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Junta de Diáconos</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Diáconos: Secretario(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Secretario(a)</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Diáconos: Tesorero(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Tesorero(a)</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Diáconos: Bienes y Enseres" class="rounded text-indigo-600 focus:ring-indigo-500"> Bienes y Enseres</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Diáconos: Cronogramas y Visitas" class="rounded text-indigo-600 focus:ring-indigo-500"> Cronogramas y Visitas</label>
+                                </div>
+                            </div>
+
+                            <!-- Ministerio con Damas -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Ministerio con Damas</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Damas: Coordinadora" class="rounded text-indigo-600 focus:ring-indigo-500"> Coordinadora</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Damas: Secretaria" class="rounded text-indigo-600 focus:ring-indigo-500"> Secretaria</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Damas: Tesorera" class="rounded text-indigo-600 focus:ring-indigo-500"> Tesorera</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Damas: Vocal" class="rounded text-indigo-600 focus:ring-indigo-500"> Vocal</label>
+                                </div>
+                            </div>
+
+                            <!-- Ministerio con Niños -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Ministerio con Niños</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Niños: Coordinadora" class="rounded text-indigo-600 focus:ring-indigo-500"> Coordinadora</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Niños: Secretaria" class="rounded text-indigo-600 focus:ring-indigo-500"> Secretaria</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Niños: Tesorera" class="rounded text-indigo-600 focus:ring-indigo-500"> Tesorera</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Niños: Vocal" class="rounded text-indigo-600 focus:ring-indigo-500"> Vocal</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Niños: Maestro(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Maestro(a)</label>
+                                </div>
+                            </div>
+
+                            <!-- Ministerio con Jóvenes -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Ministerio con Jóvenes</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Jóvenes: Coordinadora" class="rounded text-indigo-600 focus:ring-indigo-500"> Coordinadora</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Jóvenes: Secretaria" class="rounded text-indigo-600 focus:ring-indigo-500"> Secretaria</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Jóvenes: Tesorera" class="rounded text-indigo-600 focus:ring-indigo-500"> Tesorera</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Jóvenes: Vocal" class="rounded text-indigo-600 focus:ring-indigo-500"> Vocal</label>
+                                </div>
+                            </div>
+
+                            <!-- Intercesión -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Intercesión</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Intercesión: Coordinador(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Coordinador(a)</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Intercesión: Intercesor(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Intercesor(a)</label>
+                                </div>
+                            </div>
+
+                            <!-- Ministerio de Alabanza -->
+                            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                <label class="block font-semibold text-xs text-slate-700 mb-2 uppercase">Ministerio de Alabanza</label>
+                                <div class="space-y-1.5 text-sm">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Alabanza: Coordinador(a)" class="rounded text-indigo-600 focus:ring-indigo-500"> Coordinador(a)</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="cargos" value="Alabanza: Ministro de Alabanza" class="rounded text-indigo-600 focus:ring-indigo-500"> Ministro de Alabanza</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Otras Comisiones (Campo libre) -->
+                        <div class="mt-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                            <label class="block font-semibold text-xs text-slate-700 mb-1 uppercase">Otras Comisiones (Fiesta, Construcción u otros)</label>
+                            <input type="text" id="otrasComisiones" placeholder="Ej: Comisión de Construcción, Comité de Fiesta..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción Formulario -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition">Cancelar</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow transition">Guardar Miembro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal: Diezmos del mes (registro de todos los miembros) -->
+    <div id="monthModal" class="fixed inset-0 bg-slate-900/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold">Diezmos del mes</h3>
+                <button onclick="closeMonthModal()" class="text-white/80 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 flex flex-wrap gap-3 border-b border-slate-200">
+                <select id="monthSel" onchange="renderMonthList()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm"></select>
+                <input id="monthYear" type="number" min="2000" max="2100" onchange="renderMonthList()" class="w-24 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                <input id="monthSearch" oninput="renderMonthList()" placeholder="Buscar miembro..." class="flex-1 min-w-[140px] bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div id="monthList" class="overflow-y-auto flex-grow p-4 space-y-2"></div>
+            <div class="px-6 py-3 bg-emerald-50 border-t border-emerald-200 flex justify-between items-center">
+                <span id="monthCounts" class="font-semibold text-emerald-900 text-sm">Total del mes</span>
+                <span id="monthTotal" class="text-xl font-bold text-emerald-700">S/ 0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Mayordomía por miembro (pantalla completa) -->
+    <div id="titheModal" class="fixed inset-0 bg-slate-50 hidden z-50 overflow-y-auto">
+        <div class="bg-emerald-600 text-white sticky top-0 z-10 shadow-md">
+            <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+                <button onclick="closeTitheModal()" class="bg-emerald-700 hover:bg-emerald-800 w-10 h-10 rounded-xl flex items-center justify-center shrink-0"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold leading-tight">Mayordomía</h3>
+                    <p id="titheMemberName" class="text-xs text-emerald-100 truncate">-</p>
+                </div>
+                <div class="flex items-center gap-1 bg-emerald-700 rounded-xl p-1 shrink-0">
+                    <button type="button" onclick="switchTitheYear(activeTitheYear - 1)" class="w-8 h-8 rounded-lg hover:bg-emerald-800"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="px-2 text-sm font-bold" id="titheYearLabel">2026</span>
+                    <button type="button" onclick="switchTitheYear(activeTitheYear + 1)" class="w-8 h-8 rounded-lg hover:bg-emerald-800"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-5xl mx-auto p-4 space-y-4">
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4">
+                    <p class="text-[11px] sm:text-xs font-semibold uppercase text-slate-500">Total <span id="currentYearDisplay">2026</span></p>
+                    <p id="yearTotalAmount" class="text-lg sm:text-2xl font-bold text-emerald-700 mt-1">S/ 0.00</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4">
+                    <p class="text-[11px] sm:text-xs font-semibold uppercase text-slate-500">Meses pagados</p>
+                    <p id="paidCount" class="text-lg sm:text-2xl font-bold text-emerald-600 mt-1">0</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4">
+                    <p class="text-[11px] sm:text-xs font-semibold uppercase text-slate-500">Faltan pagar</p>
+                    <p id="missingCount" class="text-lg sm:text-2xl font-bold text-red-600 mt-1">0</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="monthsGrid"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Mensajes / Confirmaciones personalizadas -->
+    <div id="alertModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center space-y-4">
+            <div id="alertIcon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl"></div>
+            <h3 id="alertTitle" class="text-lg font-bold text-slate-800"></h3>
+            <p id="alertMessage" class="text-sm text-slate-600"></p>
+            <div id="alertButtons" class="flex gap-2 justify-center pt-2">
+                <!-- Botones dinámicos -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de la Aplicación -->
+    <script>
+        // Estructura de Meses
+        const monthsList = [
+            { id: 'enero', name: 'Enero' },
+            { id: 'febrero', name: 'Febrero' },
+            { id: 'marzo', name: 'Marzo' },
+            { id: 'abril', name: 'Abril' },
+            { id: 'mayo', name: 'Mayo' },
+            { id: 'junio', name: 'Junio' },
+            { id: 'julio', name: 'Julio' },
+            { id: 'agosto', name: 'Agosto' },
+            { id: 'septiembre', name: 'Septiembre' },
+            { id: 'octubre', name: 'Octubre' },
+            { id: 'noviembre', name: 'Noviembre' },
+            { id: 'diciembre', name: 'Diciembre' }
+        ];
+
+        // Estado Global
+        let members = [];
+        let currentEditingId = null;
+        let currentTitheMemberId = null;
+        let activeTitheYear = new Date().getFullYear();
+        let activeReportYear = new Date().getFullYear();
+        document.getElementById('reportYear').value = activeReportYear;
+
+        // La nube (Firebase) avisa aquí cada vez que cambian los datos
+        window.onCloudMembers = function(list) {
+            members = list;
+            filterMembers();
+            updateStats();
+            updateMonthTotal();
+            renderTitheReport();
+        };
+
+        // Guardado en la nube
+        function saveMemberCloud(m) { window.cloud.save(m); }
+        function deleteMemberCloud(id) { window.cloud.remove(id); }
+
+
+        // --- ESTADO DE PAGO (pagado / falta / por venir) ---
+        function getTithe(m, y, mo) { return parseFloat(m.tithes && m.tithes[y] && m.tithes[y][mo]) || 0; }
+        function getStatus(m, y, mo) {
+            const e = m.estado && m.estado[y] && m.estado[y][mo];
+            if (e === 'pagado') return 'pagado';
+            if (e === 'pendiente') return 'falta';
+            if (getTithe(m, y, mo) > 0) return 'pagado';
+            const now = new Date();
+            const idx = monthsList.findIndex(x => x.id === mo);
+            return (y < now.getFullYear() || (y === now.getFullYear() && idx <= now.getMonth())) ? 'falta' : 'porvenir';
+        }
+        function yearTotal(m, y) {
+            return monthsList.reduce((t, mo) => t + (getStatus(m, y, mo.id) === 'pagado' ? getTithe(m, y, mo.id) : 0), 0);
+        }
+        function renderTitheReport() {
+            const yearInput = document.getElementById('reportYear');
+            activeReportYear = parseInt(yearInput.value, 10) || new Date().getFullYear();
+            yearInput.value = activeReportYear;
+            document.getElementById('reportYearLabel').innerText = activeReportYear;
+
+            const monthTotals = monthsList.map(mo => {
+                let total = 0, contributors = 0;
+                members.forEach(m => {
+                    const amount = getStatus(m, activeReportYear, mo.id) === 'pagado' ? getTithe(m, activeReportYear, mo.id) : 0;
+                    if (amount > 0) {
+                        total += amount;
+                        contributors++;
+                    }
+                });
+                return { total, contributors };
+            });
+            const annualTotal = monthTotals.reduce((sum, month) => sum + month.total, 0);
+            const reportMembers = members.map(m => {
+                const amounts = monthsList.map(mo =>
+                    getStatus(m, activeReportYear, mo.id) === 'pagado' ? getTithe(m, activeReportYear, mo.id) : 0
+                );
+                return { member: m, amounts, total: amounts.reduce((sum, amount) => sum + amount, 0) };
+            }).sort((a, b) => (a.member.nombre || '').localeCompare(b.member.nombre || '', 'es'));
+            const givers = reportMembers.filter(row => row.total > 0).length;
+            const memberMonths = monthTotals.reduce((sum, month) => sum + month.contributors, 0);
+            const currency = amount => `S/ ${amount.toFixed(2)}`;
+
+            document.getElementById('reportYearTotal').innerText = currency(annualTotal);
+            document.getElementById('reportGiverCount').innerText = `${givers} de ${members.length}`;
+            document.getElementById('reportMonthlyAverage').innerText = currency(annualTotal / monthsList.length);
+            document.getElementById('reportYearGiverMonths').innerText = memberMonths;
+            document.getElementById('reportMonthGrandTotal').innerText = currency(annualTotal);
+            document.getElementById('reportMemberCount').innerText = `${members.length} miembros · ${givers} con aportes`;
+            document.getElementById('reportMonthRows').innerHTML = monthsList.map((mo, i) => `
+                <tr class="text-slate-700">
+                    <td class="px-4 py-2.5 font-semibold">${mo.name}</td>
+                    <td class="px-4 py-2.5 text-center">${monthTotals[i].contributors}</td>
+                    <td class="px-4 py-2.5 text-right font-semibold">${currency(monthTotals[i].total)}</td>
+                </tr>
+            `).join('');
+            document.getElementById('reportMemberRows').innerHTML = reportMembers.map((row, i) => `
+                <tr class="text-slate-700">
+                    <td class="px-2 py-2">${i + 1}</td>
+                    <td class="px-2 py-2 text-left font-semibold">${escapeHtml(row.member.nombre || '')}</td>
+                    <td class="px-2 py-2">${escapeHtml(row.member.dni || '-')}</td>
+                    ${row.amounts.map(amount => `<td class="px-2 py-2">${amount > 0 ? currency(amount) : '—'}</td>`).join('')}
+                    <td class="px-2 py-2 font-bold">${currency(row.total)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="16" class="px-2 py-6 text-center text-slate-500">No hay miembros registrados.</td></tr>';
+
+            monthTotals.forEach((month, i) => {
+                document.getElementById(`reportFooterMonth${i}`).innerText = currency(month.total);
+            });
+            document.getElementById('reportFooterYearTotal').innerText = currency(annualTotal);
+        }
+        function printTitheReport() {
+            renderTitheReport();
+            window.print();
+        }
+        function badgeHtml(st) {
+            if (st === 'pagado') return '<span class="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg whitespace-nowrap"><i class="fa-solid fa-circle-check"></i> Pagó</span>';
+            if (st === 'falta') return '<span class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-lg whitespace-nowrap"><i class="fa-solid fa-circle-xmark"></i> Falta pagar</span>';
+            return '<span class="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg whitespace-nowrap">Por venir</span>';
+        }
+        function applyMonth(m, y, mo, amount, estado) {
+            if (!m.tithes) m.tithes = {};
+            if (!m.tithes[y]) m.tithes[y] = {};
+            m.tithes[y][mo] = amount;
+            if (!m.estado) m.estado = {};
+            if (!m.estado[y]) m.estado[y] = {};
+            if (estado === null) delete m.estado[y][mo]; else m.estado[y][mo] = estado;
+            window.cloud.setMonth(m.id, y, mo, amount, estado);
+        }
+        // Si escribes un monto > 0 se marca como pagado solo
+        function onAmountChange(m, y, mo, val) {
+            const a = parseFloat(val) || 0;
+            applyMonth(m, y, mo, a, a > 0 ? 'pagado' : null);
+        }
+        function onToggle(m, y, mo) {
+            const a = getTithe(m, y, mo);
+            applyMonth(m, y, mo, a, getStatus(m, y, mo) === 'pagado' ? 'pendiente' : 'pagado');
+        }
+
+        // --- DIEZMOS DEL MES: registrar a todos de una vez ---
+        function openMonthModal() {
+            const sel = document.getElementById('monthSel');
+            sel.innerHTML = monthsList.map(mo => `<option value="${mo.id}">${mo.name}</option>`).join('');
+            sel.value = monthsList[new Date().getMonth()].id;
+            document.getElementById('monthYear').value = new Date().getFullYear();
+            document.getElementById('monthSearch').value = '';
+            document.getElementById('monthModal').classList.remove('hidden');
+            renderMonthList();
+        }
+        function closeMonthModal() {
+            document.getElementById('monthModal').classList.add('hidden');
+            renderMembers();
+        }
+        function monthSel() {
+            return {
+                mo: document.getElementById('monthSel').value,
+                y: parseInt(document.getElementById('monthYear').value) || new Date().getFullYear()
+            };
+        }
+        function renderMonthList() {
+            const { mo, y } = monthSel();
+            const q = document.getElementById('monthSearch').value.toLowerCase().trim();
+            const list = members.filter(m => !q || m.nombre.toLowerCase().includes(q) || (m.dni || '').includes(q));
+            document.getElementById('monthList').innerHTML = list.map(m => {
+                const v = getTithe(m, y, mo);
+                return `<div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                    <span class="text-sm font-medium text-slate-800 truncate flex-1">${escapeHtml(m.nombre)}</span>
+                    <span id="mb-${m.id}"></span>
+                    <div class="relative w-28 shrink-0">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-semibold text-slate-400">S/</span>
+                        <input type="number" min="0" step="0.01" inputmode="decimal" value="${v || ''}" placeholder="0.00" onfocus="this.select()" onchange="monthAmount('${m.id}', this.value)" class="w-full pl-8 pr-2 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <button id="mt-${m.id}" onclick="monthToggle('${m.id}')"></button>
+                </div>`;
+            }).join('') || '<p class="text-sm text-slate-400 text-center py-6">Sin miembros</p>';
+            list.forEach(paintMonthRow);
+            updateMonthTotal();
+        }
+        function paintMonthRow(m) {
+            const { mo, y } = monthSel();
+            const st = getStatus(m, y, mo);
+            const b = document.getElementById('mb-' + m.id), t = document.getElementById('mt-' + m.id);
+            if (!b || !t) return;
+            b.innerHTML = badgeHtml(st);
+            t.className = 'w-9 h-9 shrink-0 rounded-lg text-sm font-bold ' + (st === 'pagado' ? 'border border-slate-300 text-red-500 hover:bg-red-50' : 'bg-emerald-600 hover:bg-emerald-700 text-white');
+            t.title = st === 'pagado' ? 'Marcar como falta' : 'Marcar como pagado';
+            t.innerHTML = st === 'pagado' ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-check"></i>';
+        }
+        function updateMonthTotal() {
+            const modal = document.getElementById('monthModal');
+            if (!modal || modal.classList.contains('hidden')) return;
+            const { mo, y } = monthSel();
+            let total = 0, paid = 0, missing = 0;
+            members.forEach(m => {
+                const st = getStatus(m, y, mo);
+                if (st === 'pagado') { paid++; total += getTithe(m, y, mo); }
+                else if (st === 'falta') missing++;
+            });
+            document.getElementById('monthTotal').innerText = `S/ ${total.toFixed(2)}`;
+            document.getElementById('monthCounts').innerText = `Pagaron ${paid} · Faltan ${missing}`;
+        }
+        function monthAmount(id, val) {
+            const m = members.find(x => x.id === id); if (!m) return;
+            const { mo, y } = monthSel();
+            onAmountChange(m, y, mo, val);
+            paintMonthRow(m); updateMonthTotal();
+        }
+        function monthToggle(id) {
+            const m = members.find(x => x.id === id); if (!m) return;
+            const { mo, y } = monthSel();
+            onToggle(m, y, mo);
+            paintMonthRow(m); updateMonthTotal();
+        }
+
+        // Renderizar tabla de miembros
+        function renderMembers(filteredList = null) {
+            const list = filteredList || members;
+            const tbody = document.getElementById('membersTableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            list.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition border-b border-slate-100';
+
+                // Badge Tipo de Miembro
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                if (m.tipoMiembro === 'PLENO') badgeClass = 'bg-emerald-100 text-emerald-700';
+                else if (m.tipoMiembro === 'EN PROCESO') badgeClass = 'bg-amber-100 text-amber-700';
+                else if (m.tipoMiembro === 'OBRERO LOCAL') badgeClass = 'bg-blue-100 text-blue-700';
+
+                // Formatear Cargos
+                let cargosHtml = '';
+                if (m.cargos && m.cargos.length > 0) {
+                    cargosHtml += m.cargos.map(c => `<span class="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-md font-medium mr-1 mb-1">${c}</span>`).join('');
+                }
+                if (m.otrasComisiones) {
+                    cargosHtml += `<span class="inline-block bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-md font-medium mr-1 mb-1"><i class="fa-solid fa-tag mr-1"></i>${m.otrasComisiones}</span>`;
+                }
+                if (!cargosHtml) {
+                    cargosHtml = '<span class="text-slate-400 text-xs italic">Sin cargos asignados</span>';
+                }
+
+                // Total diezmos del año actual
+                const yNow = new Date().getFullYear();
+                const totalT2026 = yearTotal(m, yNow);
+                const stNow = getStatus(m, yNow, monthsList[new Date().getMonth()].id);
+                const stBadge = stNow === 'pagado'
+                    ? '<div class="mt-1"><span class="text-[11px] font-bold text-emerald-700"><i class="fa-solid fa-circle-check"></i> Pagó este mes</span></div>'
+                    : '<div class="mt-1"><span class="text-[11px] font-bold text-red-600"><i class="fa-solid fa-circle-xmark"></i> Falta este mes</span></div>';
+                const thy = document.getElementById('thYearLabel'); if (thy) thy.innerText = '(' + yNow + ')';
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4">
+                        <div class="font-bold text-slate-800">${escapeHtml(m.nombre)}</div>
+                        <div class="text-xs text-slate-500">Nac: ${m.fechaNacimiento || 'No reg.'}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-700"><i class="fa-solid fa-id-card text-slate-400 mr-1.5 text-xs"></i>${escapeHtml(m.dni)}</div>
+                        <div class="text-xs text-slate-500"><i class="fa-solid fa-phone text-slate-400 mr-1.5 text-xs"></i>${escapeHtml(m.celular || 'S/N')}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${m.tipoMiembro}</span>
+                    </td>
+                    <td class="py-3.5 px-4 max-w-xs">
+                        <div class="flex flex-wrap">${cargosHtml}</div>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                        <button onclick="openTitheModal('${m.id}')" class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs">
+                            <i class="fa-solid fa-hand-holding-dollar"></i> S/ ${totalT2026.toFixed(2)}
+                        </button>
+                        ${stBadge}
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button onclick="editMember('${m.id}')" class="p-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-xl transition text-sm" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="confirmDeleteMember('${m.id}')" class="p-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl transition text-sm" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Actualizar Estadísticas
+        function updateStats() {
+            document.getElementById('statTotal').innerText = members.length;
+            document.getElementById('statPlenos').innerText = members.filter(m => m.tipoMiembro === 'PLENO').length;
+            document.getElementById('statProceso').innerText = members.filter(m => m.tipoMiembro === 'EN PROCESO').length;
+            document.getElementById('statObreros').innerText = members.filter(m => m.tipoMiembro === 'OBRERO LOCAL').length;
+        }
+
+        // Filtro de búsqueda en tiempo real
+        function filterMembers() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const typeFilter = document.getElementById('filterType').value;
+
+            const filtered = members.filter(m => {
+                const matchQuery = m.nombre.toLowerCase().includes(query) || m.dni.toLowerCase().includes(query);
+                const matchType = typeFilter === '' ||
+                    (typeFilter === 'FALTA_MES' ? getStatus(m, new Date().getFullYear(), monthsList[new Date().getMonth()].id) === 'falta' : m.tipoMiembro === typeFilter);
+                return matchQuery && matchType;
+            });
+
+            renderMembers(filtered);
+        }
+
+        // Abrir Modal para Nuevo Miembro
+        function openModal() {
+            currentEditingId = null;
+            document.getElementById('modalTitle').innerText = 'Registrar Nuevo Miembro';
+            document.getElementById('memberForm').reset();
+            document.getElementById('memberId').value = '';
+            document.getElementById('memberModal').classList.remove('hidden');
+        }
+
+        // Cerrar Modal Formulario
+        function closeModal() {
+            document.getElementById('memberModal').classList.add('hidden');
+        }
+
+        // Editar Miembro
+        function editMember(id) {
+            const m = members.find(item => item.id === id);
+            if (!m) return;
+
+            currentEditingId = id;
+            document.getElementById('modalTitle').innerText = 'Editar Datos de Miembro';
+            document.getElementById('memberId').value = m.id;
+            document.getElementById('nombre').value = m.nombre || '';
+            document.getElementById('dni').value = m.dni || '';
+            document.getElementById('fechaNacimiento').value = m.fechaNacimiento || '';
+            document.getElementById('celular').value = m.celular || '';
+            document.getElementById('estadoCivil').value = m.estadoCivil || 'Soltero(a)';
+            document.getElementById('tipoMiembro').value = m.tipoMiembro || 'EN PROCESO';
+            document.getElementById('fechaConversion').value = m.fechaConversion || '';
+            document.getElementById('fechaBautismo').value = m.fechaBautismo || '';
+            document.getElementById('otrasComisiones').value = m.otrasComisiones || '';
+
+            // Marcar checkboxes de cargos
+            const checkboxes = document.querySelectorAll('input[name="cargos"]');
+            checkboxes.forEach(cb => {
+                cb.checked = m.cargos && m.cargos.includes(cb.value);
+            });
+
+            document.getElementById('memberModal').classList.remove('hidden');
+        }
+
+        // Guardar Miembro (Crear o Actualizar)
+        function saveMember(event) {
+            event.preventDefault();
+
+            const nombre = document.getElementById('nombre').value.trim();
+            const dni = document.getElementById('dni').value.trim();
+            const fechaNacimiento = document.getElementById('fechaNacimiento').value;
+            const celular = document.getElementById('celular').value.trim();
+            const estadoCivil = document.getElementById('estadoCivil').value;
+            const tipoMiembro = document.getElementById('tipoMiembro').value;
+            const fechaConversion = document.getElementById('fechaConversion').value;
+            const fechaBautismo = document.getElementById('fechaBautismo').value;
+            const otrasComisiones = document.getElementById('otrasComisiones').value.trim();
+
+            // Recolectar checkboxes seleccionados
+            const cargosSelected = [];
+            document.querySelectorAll('input[name="cargos"]:checked').forEach(cb => {
+                cargosSelected.push(cb.value);
+            });
+
+            let savedMember = null;
+            if (currentEditingId) {
+                // Actualizar
+                const index = members.findIndex(item => item.id === currentEditingId);
+                if (index !== -1) {
+                    members[index] = savedMember = {
+                        ...members[index],
+                        nombre, dni, fechaNacimiento, celular, estadoCivil, tipoMiembro,
+                        fechaConversion, fechaBautismo, cargos: cargosSelected, otrasComisiones
+                    };
+                }
+            } else {
+                // Crear nuevo
+                const newMember = {
+                    id: Date.now().toString(),
+                    nombre, dni, fechaNacimiento, celular, estadoCivil, tipoMiembro,
+                    fechaConversion, fechaBautismo, cargos: cargosSelected, otrasComisiones,
+                    tithes: {}
+                };
+                members.push(newMember);
+                savedMember = newMember;
+            }
+
+            if (savedMember) saveMemberCloud(savedMember);
+            renderMembers();
+            updateStats();
+            closeModal();
+            showAlert('¡Éxito!', 'Los datos del miembro han sido guardados correctamente.', 'success');
+        }
+
+        // Confirmar Eliminación
+        function confirmDeleteMember(id) {
+            const m = members.find(item => item.id === id);
+            if (!m) return;
+
+            showConfirm(
+                'Eliminar Miembro',
+                `¿Estás seguro de eliminar a <b>${m.nombre}</b>? Esta acción no se puede deshacer.`,
+                () => {
+                    members = members.filter(item => item.id !== id);
+                    deleteMemberCloud(id);
+                    renderMembers();
+                    updateStats();
+                    showAlert('Eliminado', 'El miembro ha sido eliminado correctamente.', 'info');
+                }
+            );
+        }
+
+        // --- MÓDULO DE MAYORDOMÍA (DIEZMOS) ---
+
+        function openTitheModal(id) {
+            const m = members.find(item => item.id === id);
+            if (!m) return;
+            currentTitheMemberId = id;
+            activeTitheYear = new Date().getFullYear();
+            document.getElementById('titheMemberName').innerText = `${m.nombre} · DNI ${m.dni || '-'} · ${m.tipoMiembro || ''}`;
+            document.getElementById('titheModal').classList.remove('hidden');
+            document.getElementById('titheModal').scrollTop = 0;
+            renderTitheMonths();
+        }
+
+        function closeTitheModal() {
+            document.getElementById('titheModal').classList.add('hidden');
+            currentTitheMemberId = null;
+            renderMembers();
+        }
+
+        function switchTitheYear(year) {
+            activeTitheYear = year;
+            renderTitheMonths();
+        }
+
+        function renderTitheMonths() {
+            const m = members.find(item => item.id === currentTitheMemberId);
+            if (!m) return;
+            document.getElementById('titheYearLabel').innerText = activeTitheYear;
+            document.getElementById('currentYearDisplay').innerText = activeTitheYear;
+            const now = new Date();
+            const grid = document.getElementById('monthsGrid');
+            grid.innerHTML = monthsList.map((mo, i) => {
+                const a = getTithe(m, activeTitheYear, mo.id);
+                const isNow = activeTitheYear === now.getFullYear() && i === now.getMonth();
+                return `<div id="tc-${mo.id}" class="bg-white border-2 rounded-2xl p-4 flex flex-col gap-3 ${isNow ? 'border-indigo-400' : 'border-slate-200'}">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold uppercase text-sm text-slate-800">${mo.name}${isNow ? ' <span class="text-indigo-600 normal-case text-xs">· este mes</span>' : ''}</span>
+                        <span id="tb-${mo.id}"></span>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-semibold text-slate-400">S/</span>
+                        <input type="number" min="0" step="0.01" inputmode="decimal" value="${a || ''}" placeholder="0.00" onfocus="this.select()" onchange="titheAmount('${mo.id}', this.value)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <button id="tt-${mo.id}" onclick="titheToggle('${mo.id}')"></button>
+                </div>`;
+            }).join('');
+            monthsList.forEach(mo => paintTitheCard(m, mo.id));
+            paintTitheSummary(m);
+        }
+
+        function paintTitheCard(m, mo) {
+            const st = getStatus(m, activeTitheYear, mo);
+            document.getElementById('tb-' + mo).innerHTML = badgeHtml(st);
+            const btn = document.getElementById('tt-' + mo);
+            btn.className = st === 'pagado'
+                ? 'w-full py-2 rounded-xl text-sm font-semibold border border-slate-300 text-slate-600 hover:bg-slate-50'
+                : 'w-full py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white';
+            btn.innerHTML = st === 'pagado' ? '<i class="fa-solid fa-rotate-left"></i> Marcar como falta' : '<i class="fa-solid fa-check"></i> Marcar como pagado';
+        }
+
+        function paintTitheSummary(m) {
+            let paid = 0, missing = 0;
+            monthsList.forEach(mo => {
+                const st = getStatus(m, activeTitheYear, mo.id);
+                if (st === 'pagado') paid++; else if (st === 'falta') missing++;
+            });
+            document.getElementById('yearTotalAmount').innerText = `S/ ${yearTotal(m, activeTitheYear).toFixed(2)}`;
+            document.getElementById('paidCount').innerText = paid;
+            document.getElementById('missingCount').innerText = missing;
+        }
+
+        function titheAmount(mo, val) {
+            const m = members.find(item => item.id === currentTitheMemberId);
+            if (!m) return;
+            onAmountChange(m, activeTitheYear, mo, val);
+            paintTitheCard(m, mo);
+            paintTitheSummary(m);
+        }
+
+        function titheToggle(mo) {
+            const m = members.find(item => item.id === currentTitheMemberId);
+            if (!m) return;
+            onToggle(m, activeTitheYear, mo);
+            paintTitheCard(m, mo);
+            paintTitheSummary(m);
+        }
+
+        // --- SISTEMA DE ALERTAS / MODALES PERSONALIZADOS ---
+
+        function showAlert(title, message, type = 'success') {
+            const modal = document.getElementById('alertModal');
+            const titleEl = document.getElementById('alertTitle');
+            const msgEl = document.getElementById('alertMessage');
+            const iconEl = document.getElementById('alertIcon');
+            const btnsEl = document.getElementById('alertButtons');
+
+            titleEl.innerText = title;
+            msgEl.innerHTML = message;
+
+            if (type === 'success') {
+                iconEl.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-emerald-100 text-emerald-600';
+                iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                iconEl.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-indigo-100 text-indigo-600';
+                iconEl.innerHTML = '<i class="fa-solid fa-info"></i>';
+            }
+
+            btnsEl.innerHTML = `<button onclick="closeAlert()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow transition">Aceptar</button>`;
+            modal.classList.remove('hidden');
+        }
+
+        function showConfirm(title, message, onConfirmCallback) {
+            const modal = document.getElementById('alertModal');
+            const titleEl = document.getElementById('alertTitle');
+            const msgEl = document.getElementById('alertMessage');
+            const iconEl = document.getElementById('alertIcon');
+            const btnsEl = document.getElementById('alertButtons');
+
+            titleEl.innerText = title;
+            msgEl.innerHTML = message;
+
+            iconEl.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-rose-100 text-rose-600';
+            iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+
+            btnsEl.innerHTML = `
+                <button onclick="closeAlert()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition">Cancelar</button>
+                <button id="confirmBtn" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow transition">Sí, Eliminar</button>
+            `;
+
+            document.getElementById('confirmBtn').onclick = function() {
+                closeAlert();
+                onConfirmCallback();
+            };
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAlert() {
+            document.getElementById('alertModal').classList.add('hidden');
+        }
+
+        // Utilidad escapar HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+                 collection, doc, setDoc, updateDoc, deleteDoc, deleteField, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ====== PEGA AQUÍ TU CONFIG DE FIREBASE (paso 1) ======
+        const firebaseConfig = {
+  apiKey: "AIzaSyB2swqIRKRpoQLirGcAIDQ1wjB6bNxRdhM",
+  authDomain: "iglesia-e814f.firebaseapp.com",
+  projectId: "iglesia-e814f",
+  storageBucket: "iglesia-e814f.firebasestorage.app",
+  messagingSenderId: "1039256077845",
+  appId: "1:1039256077845:web:c12e14f0a72c83511d701c",
+  measurementId: "G-D8QDTKNG34"
+};
+        // ======================================================
+
+        const $ = id => document.getElementById(id);
+        const setStatus = t => { const s = $('syncStatus'); if (s) s.textContent = t; };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // cache local: si se va el internet sigue funcionando y sincroniza al volver
+        const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+        const col = collection(db, 'members');
+        let unsub = null;
+
+        window.cloud = {
+            save: m => setDoc(doc(col, m.id), JSON.parse(JSON.stringify(m))).catch(e => alert('Error al guardar: ' + e.message)),
+            remove: id => deleteDoc(doc(col, id)).catch(e => alert('Error al eliminar: ' + e.message)),
+            setMonth: (id, year, month, amount, estado) => updateDoc(doc(col, id), {
+                [`tithes.${year}.${month}`]: amount,
+                [`estado.${year}.${month}`]: estado === null ? deleteField() : estado
+            }).catch(e => alert('Error al guardar: ' + e.message)),
+            logout: () => signOut(auth)
+        };
+
+        $('loginForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            $('loginError').classList.add('hidden');
+            try {
+                await signInWithEmailAndPassword(auth, $('loginEmail').value.trim(), $('loginPass').value);
+            } catch (err) {
+                $('loginError').textContent = 'Correo o contraseña incorrectos.';
+                $('loginError').classList.remove('hidden');
+            }
+        });
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                $('loginOverlay').classList.add('hidden');
+                unsub = onSnapshot(col, snap => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+                    window.onCloudMembers(list);
+                    setStatus(snap.metadata.hasPendingWrites || snap.metadata.fromCache ? '☁ Pendiente de sincronizar' : '☁ Sincronizado');
+                }, err => setStatus('☁ Error: ' + err.code));
+            } else {
+                if (unsub) { unsub(); unsub = null; }
+                window.onCloudMembers([]);
+                $('loginOverlay').classList.remove('hidden');
+            }
+        });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>
